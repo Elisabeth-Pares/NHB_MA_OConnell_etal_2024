@@ -18,7 +18,7 @@ numtr = 332; % number of trials
 % generate RTs:
 dm = 1.2%1.2; % mean drift rate /sec
 ds = .5; %0.5 std of drift rate /sec
-bcr = 0.8; % assume a collapsing bound at this rate /sec, let's say bound starts at 1 and collapses toward zero at 2 sec. Almost ruling out misses.
+bcr = 1%0.8; % assume a collapsing bound at this rate /sec, let's say bound starts at 1 and collapses toward zero at 2 sec. Almost ruling out misses.
 % Let's generate a bunch of drift rates and record them:
 d = dm+ds*randn(numtr,1);
 RT = 1./(d+bcr); % if you want to look at distribution:
@@ -71,8 +71,8 @@ cfgDesign.formula = {'y~1','y~1+cat(is_slow)'};
 
 % For Timexpanding everything:
 cfgTimeexpand = [];
-cfgTimeexpand.timelimits = [-1.5 1.5]; % Fromer et al GitHub page says that analysis of Steinemann was the same as the Boldt data. The Boldt data code appears to use asymmetric S/R windows but the long part was 1.5 sec
-plt.times = [-1.5:1/EEG.srate:1.499];
+cfgTimeexpand.timelimits = [-1 1]; % Fromer et al GitHub page says that analysis of Steinemann was the same as the Boldt data. The Boldt data code appears to use asymmetric S/R windows but the long part was 1.5 sec
+plt.times = [-1:1/EEG.srate:0.999];
 
 % now run EEGSR through unfold:
 EEGSR = uf_designmat(EEGSR,cfgDesign);
@@ -181,7 +181,7 @@ xlR = [-0.72 0.1];  % x axis limits for Response-locked
 
 FS = 9; % fontsize
 xlex = [-0.1 1.1];
-yl=[-0.5 1];
+yl=[-0.25 1];
 
 set(0,'DefaultLegendAutoUpdate','off')
 f = figure;  set(gcf,'DefaultLineLineWidth',2);
@@ -189,24 +189,28 @@ t = tiledlayout(4,4, 'TileSpacing','compact')
 colors = [180 108 110 ; 105 9 11]/255;
 dblue = hex2rgb("0072BD");
 lblue = hex2rgb("4DBEEE");
-
+lt = {'-', ':'};
 % Example trials up top
 % find suitable trials around the 10th, 90th percentile:
 q19 = quantile(RT,[.1 .9]);
 [mm,tr(1)]  = min(abs(RT-q19(1))); [mm,tr(2)]  = min(abs(RT-q19(2)));
+speedLabs = {'fast', 'slow'};
+
 for n=1:2
     if n == 1; nexttile([1,2]); end
     tex = [-0.1:1/EEG.srate:1.1]; exS = zeros(1,length(tex)); exR = zeros(1,length(tex));
     exS(find(tex==0)+[1:length(S)]) = S; [mm,RTsamp]=min(abs(tex-RT(tr(n)))); exR(RTsamp+tR) = R;
-    
+    speedLab = speedLabs{n};
     if n == 2; xlabel('Time (s)'); ylabel('Simulated signals (a.u.)');
-        lt = '--'; else lt = '-';end
+    end
     
     plot(tex,exS, 'Color', [0 0.4470 0.7410]); hold on; %if n==1, set(gca,'XTickLabel',[]); end%set(gca,'XColor',[1 1 1]); end
-    plot(tex,exR, 'Color', [0.8500 0.3250 0.0980]); xlim(xlex); ylim(yl); plot([0 0],yl,'k','LineWidth',1);  hold on;
+    plot(tex,exR, 'Color', [0.800 0.3250 0.0980]+0.2*(n-1)); xlim(xlex); ylim(yl); plot([0 0],yl,'k','LineWidth',1);  hold on;
+%        plot(tex,exR, 'Color', [0.800 0.3250 0.0980], 'LineStyle', lt{n}); xlim(xlex); ylim(yl); plot([0 0],yl,'k','LineWidth',1);  hold on;
+
     plot([1 1]*tex(RTsamp),yl,'--k','LineWidth',1); hold on;
-    text(-0.02,yl(2)*1.12,'S','FontSize',FS); text(tex(RTsamp)-0.04,yl(2)*1.12,['R_' num2str(n)],'FontSize',FS);
-    if n == 1; text(-0.02,yl(2)*1.4,['Time Invariant S and R components'], 'fontsize', 11);
+    text(-0.02,yl(2)*1.15,'Stim','FontSize',FS); text(tex(RTsamp)-0.04,yl(2)*1.15,['Resp ' speedLab],'FontSize',FS);
+    if n == 1; text(-0.02,yl(2)*1.4,['Timescale Invariant S and R components'], 'fontsize', 11);
         l=legend({'S', 'R'}, 'interpreter', 'latex', 'location', 'ne', 'box', 'off')
         l.ItemTokenSize = [10 8];
     end
@@ -215,19 +219,21 @@ end
 
 for n=1:2
     if n == 1; nexttile([1,2]); end
+        speedLab = speedLabs{n};
     tex = [-0.1:1/EEG.srate:1.1]; ex = zeros(1,length(tex));
     ex(find(tex==0)+[1:round(EEG.srate*RT(tr(n)))]) = [1:round(EEG.srate*RT(tr(n)))]/round(EEG.srate*RT(tr(n)))*a(tr(n));
     
-    if n == 2; xlabel('Time (s)');
-        lt = '--'; else lt = '-';end
+    if n == 2; xlabel('Time (s)');end
     
     [mm,RTsamp]=min(abs(tex-RT(tr(n))));
-    plot(tex,ex,'Color',[0 .5 0]); if n==1, set(gca,'YTickLabel', ''); end ; hold on;%set(gca,'XColor',[1 1 1]); end
+    plot(tex,ex,'Color',[0 .5 0]+0.25*(n-1)); if n==1, set(gca,'YTickLabel', ''); end ; hold on;%set(gca,'XColor',[1 1 1]); end
+%     plot(tex,ex, 'Color', [0 .5 0], 'LineStyle', lt{n});  if n==1, set(gca,'YTickLabel', ''); end ; hold on;%set(gca,'XColor',[1 1 1]); end
+
     xlim(xlex); ylim(yl); plot([0 0],yl,'k','LineWidth',1); hold on;
     plot([1 1]*tex(RTsamp),yl,'--k','LineWidth',1); hold on;
     set(gca,'YTickLabel', '');
-    text(tex(RTsamp)-0.04,yl(2)*1.12,['R_' num2str(n)],'FontSize',FS);
-    text(-0.02,yl(2)*1.12,'S','FontSize',FS);
+    text(tex(RTsamp)-0.04,yl(2)*1.15,['Resp ' speedLab],'FontSize',FS);
+    text(-0.02,yl(2)*1.15,'Stim','FontSize',FS);
     if n == 1; text(-0.02,yl(2)*1.4,['Ramping Evidence Accumulation Signal'], 'fontsize', 11);
         l=legend({'EA'}, 'interpreter', 'latex', 'location', 'ne', 'box', 'off')
         l.ItemTokenSize = [10 8];
@@ -240,14 +246,14 @@ plot(plt.times,mean(erpSR(find(RT<median(RT)),:)),'Color',colors(1,:)); hold on;
 plot(plt.times,mean(erpSR(find(RT>=median(RT)),:)),'Color',colors(2,:)); hold on;
 xlim(xlS); ylim(yl); plot([0 0],yl,'k','LineWidth',1);
 ylabel('ERP amplitude (a.u.)'); set(gca,'XTickLabel',[]);
-text(-0.02,yl(2)*1.12,'S','FontSize',FS);
+text(-0.02,yl(2)*1.15,'Stim','FontSize',FS);
 nexttile; %Response-locked
 plot(plt.times,mean(erprSR(find(RT<median(RT)),:)),'Color',colors(1,:)); hold on;
 plot(plt.times,mean(erprSR(find(RT>=median(RT)),:)),'Color',colors(2,:));   hold on;
 xlim(xlR); ylim(yl);  plot([0 0],yl,'--k','LineWidth',1);   set(gca,'XTickLabel',[]);
-text(-0.04,yl(2)*1.12,'R','FontSize',FS);
+text(-0.04,yl(2)*1.15,'Resp','FontSize',FS);
 set(gca,'YTickLabel','');
-l=legend({'Fast', 'Slow'}, 'interpreter', 'latex', 'location', 'nw', 'box', 'off')
+l=legend({'Fast RT', 'Slow RT'}, 'interpreter', 'latex', 'location', 'nw', 'box', 'off')
 l.ItemTokenSize = [10 8];
 
 % RAMP uncorrected:
@@ -256,7 +262,7 @@ plot(plt.times,mean(erpRAMP(find(RT<median(RT)),:)),'Color',colors(1,:)); hold o
 plot(plt.times,mean(erpRAMP(find(RT>=median(RT)),:)),'Color',colors(2,:)); hold on; xlim(xlS);
 ylim(yl); plot([0 0],yl,'k','LineWidth',1);   set(gca,'XTickLabel',[]);set(gca,'YTickLabel','');
 xlim(xlS); ylim(yl); plot([0 0],yl,'k','LineWidth',1);
-text(-0.02,yl(2)*1.12,'S','FontSize',FS);
+text(-0.02,yl(2)*1.15,'Stim','FontSize',FS);
 
 nexttile;
 plot(plt.times,mean(erprRAMP(find(RT<median(RT)),:)),'Color',colors(1,:)); hold on;
@@ -265,8 +271,8 @@ xlim(xlR); ylim(yl);
 plot([0 0],yl,'--k','LineWidth',1);   set(gca,'XTickLabel',[]);
 set(gca,'YTickLabel',''); set(gca,'XTickLabel',[]);
 xlim(xlR); ylim(yl);  plot([0 0],yl,'--k','LineWidth',1);   set(gca,'XTickLabel',[]);
-text(-0.04,yl(2)*1.12,'R','FontSize',FS);
-l=legend({'Fast', 'Slow'}, 'interpreter', 'latex', 'location', 'nw', 'box', 'off')
+text(-0.04,yl(2)*1.15,'Resp','FontSize',FS);
+l=legend({'Fast RT', 'Slow RT'}, 'interpreter', 'latex', 'location', 'nw', 'box', 'off')
 l.ItemTokenSize = [10 8];
 
 % SR corrected:
@@ -279,7 +285,7 @@ l = legend({'$$\hat{S}$$'}, 'interpreter', 'latex', 'location', 'ne', 'box', 'of
 l.ItemTokenSize = [10 8];
 xlim(xlS); ylim(yl); plot([0 0],yl,'k','LineWidth',1);
 ylabel('Unfold ERP (a.u.)')
-text(-0.3,yl(2)*1.25,'                    S ~ 1, R ~ 1 + RT')
+text(-0.3,yl(2)*1.4,'                    S ~ 1, R ~ 1 + RT')
 
 
 nexttile; %Response-locked
@@ -288,43 +294,45 @@ plot(plt.times,.015+mean(erprcSR(find(RT>=median(RT)),:)),'Color',colors(2,:)); 
 plot([0 0],yl,'--k','LineWidth',1);    hold on;
 set(gca,'YTickLabel','','XTickLabel',[]);
 xlim(xlR); ylim(yl);  plot([0 0],yl,'--k','LineWidth',1);  % set(gca,'XTickLabel',[]);
-l=legend({'$$\hat{R}$$ fast', '$$\hat{R}$$ slow'}, 'interpreter', 'latex', 'location', 'nw', 'box', 'off')
+% l=legend({'$$\hat{R}$$ fast', '$$\hat{R}$$ slow'}, 'interpreter', 'latex', 'location', 'nw', 'box', 'off')
+title(['$$\hat{S}$$ removed'], 'interpreter', 'latex');
+l=legend({'Fast RT', 'Slow RT'}, 'interpreter', 'latex', 'location', 'nw', 'box', 'off')
+l.ItemTokenSize = [10 8];
 
 % RAMP corrected:
 nexttile;
 plot(plt.times,ufresultRAMP.beta(:,:,1));hold on;
 xlim(xlS); ylim(yl);
-plot(plt.times,mean(erpcRAMP2(find(RT<median(RT)),:)),'--','Color',colors(1,:)); hold on;
-plot(plt.times,mean(erpcRAMP2(find(RT>=median(RT)),:)),'--','Color',colors(2,:)); hold on;
 plot([0 0],yl,'k','LineWidth',1);   xlim(xlS); ylim(yl);  % eSated S-compt
 set(gca,'YTickLabel','','XTickLabel',[]);
 l = legend({'$$\hat{S}$$'}, 'interpreter', 'latex', 'location', 'ne', 'box', 'off')
 l.ItemTokenSize = [10 8];
-text(-0.3,yl(2)*1.25,'                    S ~ 1, R ~ 1 + RT')
+text(-0.3,yl(2)*1.4,'                    S ~ 1, R ~ 1 + RT')
 
-nexttile;
+ax = nexttile;
 plot(plt.times,mean(erprcRAMP(find(RT<median(RT)),:)),'Color',colors(1,:)); hold on;
 plot(plt.times,mean(erprcRAMP(find(RT>=median(RT)),:)),'Color',colors(2,:)); hold on;
-plot(plt.times,mean(erprcRAMP2(find(RT<median(RT)),:)),'--','Color',colors(1,:)); hold on;
-plot(plt.times,mean(erprcRAMP2(find(RT>=median(RT)),:)),'--','Color',colors(2,:));
 xlim(xlR); ylim(yl); plot([0 0],yl,'--k','LineWidth',1)
 set(gca,'YTickLabel','','XTickLabel',[]);
-l=legend({'$$\hat{R}$$ fast', '$$\hat{R}$$ slow'}, 'interpreter', 'latex', 'location', 'nw', 'box', 'off')
-l.ItemTokenSize = [10 8];
+% l=legend(ax,{'$$\hat{R}$$ fast', '$$\hat{R}$$ slow'}, 'interpreter', 'latex', 'location', 'nw', 'box', 'off')
+% l=legend({'$$\hat{S}$$ removed', ''}, 'interpreter', 'latex', 'location', 'nw', 'box', 'off')
+title(['$$\hat{S}$$ removed'], 'interpreter', 'latex');
+l=legend({'Fast RT', 'Slow RT'}, 'interpreter', 'latex', 'location', 'nw', 'box', 'off')
+l.ItemTokenSize = [10 8]; hold on; 
 xlim(xlR); ylim(yl);  plot([0 0],yl,'--k','LineWidth',1);  
 
 
 % Equivalent of Fig. S6
-% yl = [-0.5 0.6];
-
 nexttile;set(gca,'YTickLabel','','XTickLabel',[]);
 plot(plt.times,mean(erprcSR_S(find(RT<median(RT)),:)),'-','Color',colors(1,:)); hold on;
 plot(plt.times,mean(erprcSR_S(find(RT>=median(RT)),:)),'-','Color',colors(2,:));
 xlim(xlS); ylim(yl); hold on;
 plot([0 0],yl,'k','LineWidth',1);
-l = legend({'$$\hat{S}$$ fast', '$$\hat{S}$$ slow'}, 'interpreter', 'latex', 'location', 'ne', 'box', 'off')
+title(['$$\hat{R}$$ removed'], 'interpreter', 'latex');
+l=legend({'Fast RT', 'Slow RT'}, 'interpreter', 'latex', 'location', 'ne', 'box', 'off')
+
 l.ItemTokenSize = [10 8];
-text(-0.3,yl(2)*1.25,'                S ~ 1 + RT, R ~ 1 + RT')
+text(-0.3,yl(2)*1.4,'                S ~ 1 + RT, R ~ 1 + RT')
 
 ylabel('Unfold ERP (a.u.)')
 
@@ -335,7 +343,8 @@ plot([0 0],yl,'--k','LineWidth',1);    hold on; % eSated S-compt
 xlim(xlR);
 ylim(yl); hold on;
 set(gca,'YTickLabel','');
-l=legend({'$$\hat{R}$$ fast', '$$\hat{R}$$ slow'}, 'interpreter', 'latex', 'location', 'nw', 'box', 'off')
+title(['$$\hat{S}$$ removed'], 'interpreter', 'latex');
+l=legend({'Fast RT', 'Slow RT'}, 'interpreter', 'latex', 'location', 'nw', 'box', 'off')
 l.ItemTokenSize = [10 8];
 
 nexttile;
@@ -344,9 +353,13 @@ plot(plt.times,mean(erprcRAMP_S(find(RT>=median(RT)),:)),'-','Color',colors(2,:)
 xlim(xlS); ylim(yl); hold on;
 plot([0 0],yl,'k','LineWidth',1);
 set(gca,'YTickLabel','');
-l = legend({'$$\hat{S}$$ fast', '$$\hat{S}$$ slow'}, 'interpreter', 'latex', 'location', 'ne', 'box', 'off')
+title(['$$\hat{R}$$ removed'], 'interpreter', 'latex');
+l=legend({'Fast RT', 'Slow RT'}, 'interpreter', 'latex', 'location', 'ne', 'box', 'off')
 l.ItemTokenSize = [10 8];
-text(-0.3,yl(2)*1.25,'                S ~ 1 + RT, R ~ 1 + RT')
+text(-0.3,yl(2)*1.4,'                S ~ 1 + RT, R ~ 1 + RT')
+plot(plt.times,mean(erpcRAMP2(find(RT<median(RT)),:)),':','Color',colors(1,:)); hold on;
+plot(plt.times,mean(erpcRAMP2(find(RT>=median(RT)),:)),':','Color',colors(2,:)); hold on;
+
 
 nexttile;
 plot(plt.times,mean(erprcRAMP_R(find(RT<median(RT)),:)),'-','Color',colors(1,:)); hold on;
@@ -355,11 +368,15 @@ plot([0 0],yl,'--k','LineWidth',1);    hold on; % eSated S-compt
 xlim(xlR);
 ylim(yl); hold on;
 set(gca,'YTickLabel','');
-l=legend({'$$\hat{R}$$ fast', '$$\hat{R}$$ slow'}, 'interpreter', 'latex', 'location', 'nw', 'box', 'off')
+title(['$$\hat{S}$$ removed'], 'interpreter', 'latex');
+l=legend({'Fast RT', 'Slow RT'}, 'interpreter', 'latex', 'location', 'nw', 'box', 'off')
 l.ItemTokenSize = [10 8];
-
+plot(plt.times,mean(erprcRAMP2(find(RT<median(RT)),:)),':','Color',colors(1,:)); hold on;
+plot(plt.times,mean(erprcRAMP2(find(RT>=median(RT)),:)),':','Color',colors(2,:));
 
 xlabel(t, 'Time(s)')
 
 f.Units = 'centimeters';
 f.OuterPosition = [0 0 20 22];
+exp.figurepath = cd();
+exportgraphics(f, [exp.figurepath, '/Figure1.tiff'], 'Resolution', 600);
