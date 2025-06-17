@@ -106,10 +106,10 @@ for n=1:N
     rt(n,1) = t(dti)+mT+(rand-.5)*st;  
     
     % now make the CPP peak and go down linearly after a certain amount of post-dec accum time for this trial:
-    pdaccDurtt = postAccDurM + postAccDurM*randn; % this is in Sec. Sorry I'm flitting between sec to sample points!
+    pdaccDurtt = postAccDurM + postAccDurS*rand; % this is in Sec. Sorry I'm flitting between sec to sample points!
     accStopi = dti + round(pdaccDurtt/dt);
     while accStopi < 0%EPP edited to avoid neg index errors
-            pdaccDurtt = postAccDurM + postAccDurM*randn; % this is in Sec. Sorry I'm flitting between sec to sample points!
+            pdaccDurtt = postAccDurM + postAccDurS*rand; % this is in Sec. Sorry I'm flitting between sec to sample points!
             accStopi = dti + round(pdaccDurtt/dt);
     end
     cumdifev = abs(cumdifev);
@@ -316,7 +316,7 @@ set(gcf,'DefaultLineLineWidth',2);
 nexttile; plot(tt,avERP_S(2,:,:)','-','Color',colors(1,:)); hold on; ylim(ylims); xlim([-0.1 1]); ylabel('Raw ERP'); 
 plot(tr,avERP_S(1,:,:)','-','Color',colors(2,:)); hold on; ylim(ylims); xlim([-0.5 0.2]);  
 title('Stimulus')
-l = legend('Fast RT','Slow RT','location', 'ne','box', 'off', 'interpreter', 'latex');
+l = legend('Fast RT','Slow RT','location', 'nw','box', 'off', 'interpreter', 'latex');
 l.ItemTokenSize = [10 8];
 xticklabels('');
 
@@ -389,4 +389,4 @@ xlabel(t, 'Time (s)')
 
 f.Units = 'centimeters';
 f.OuterPosition = [0 0 12 16.5];
-exportgraphics(f, [exp.figurepath, '/FigureS1.tiff'], 'Resolution', 600);
+exportgraphics(f, ['FigureS1_new.tiff'], 'Resolution', 600);
